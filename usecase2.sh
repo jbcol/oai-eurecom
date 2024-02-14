@@ -1,20 +1,23 @@
 #!/bin/bash
 
-cd /work
+WORK_DIR=/work
+INTERFACE=enp1s0f0
+
+cd $WORK_DIR
 sudo git clone https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed
 
-sudo find /work/oai-cn5g-fed/ -type f -name "values.yaml" -exec sudo sed -i 's/eth0/enp1s0f0/g' {} +
-sudo sed -i 's/enp1s0f0/eth0/g' /work/oai-cn5g-fed/charts/oai-5g-ran/oai-gnb/values.yaml
-sudo sed -i 's/enp1s0f0/eth0/g' /work/oai-cn5g-fed/charts/oai-5g-ran/oai-cu/values.yaml
-sudo sed -i 's/enp1s0f0/eth0/g' /work/oai-cn5g-fed/charts/oai-5g-ran/oai-cu-cp/values.yaml
-sudo sed -i 's/enp1s0f0/eth0/g' /work/oai-cn5g-fed/charts/oai-5g-ran/oai-cu-up/values.yaml
+sudo find $WORK_DIR/oai-cn5g-fed/ -type f -name "values.yaml" -exec sudo sed -i 's/eth0/'$INTERFACE'/g' {} +
+sudo sed -i 's/'$INTERFACE'/eth0/g' $WORK_DIR/oai-cn5g-fed/charts/oai-5g-ran/oai-gnb/values.yaml
+sudo sed -i 's/'$INTERFACE'/eth0/g' $WORK_DIR/oai-cn5g-fed/charts/oai-5g-ran/oai-cu/values.yaml
+sudo sed -i 's/'$INTERFACE'/eth0/g' $WORK_DIR/oai-cn5g-fed/charts/oai-5g-ran/oai-cu-cp/values.yaml
+sudo sed -i 's/'$INTERFACE'/eth0/g' $WORK_DIR/oai-cn5g-fed/charts/oai-5g-ran/oai-cu-up/values.yaml
 
 # Let's install the charts
 kubectl create ns oai-tutorial
 kubectl config set-context --current --namespace=oai-tutorial
 kubectl config view --minify | grep namespace | awk '{print $2}'
 
-cd /work/oai-cn5g-fed/charts/
+cd $WORK_DIR/oai-cn5g-fed/charts/
 sudo helm dependency build oai-5g-core/oai-5g-basic/
 sudo helm install basic oai-5g-core/oai-5g-basic/
 sleep 5s
@@ -22,6 +25,8 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=basic --tim
 sleep 5s
 kubectl logs -l app.kubernetes.io/name=oai-smf -n oai-tutorial | grep 'handle_receive(16 bytes)' | wc -l
 kubectl logs -l app.kubernetes.io/name=oai-upf -n oai-tutorial | grep 'handle_receive(16 bytes)' | wc -l
+
+cd $WORK_DIR/oai-cn5g-fed/charts/oai-5g-ran/
 
 helm install cu oai-cu --namespace oai-tutorial
 sleep 5s
